@@ -6,7 +6,7 @@ FROM python:3.12-slim
 # Set standard Python environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=5001 \
+    PORT=7860 \
     FLASK_DEBUG=false
 
 # Set workspace directory
@@ -32,7 +32,7 @@ COPY models/ /app/models/
 COPY frontend/ /app/frontend/
 
 # Expose default port (customizable via env var PORT)
-EXPOSE 5001
+EXPOSE 7860
 
 # Start the application using a robust, concurrency-supported server (Gunicorn)
 # Evaluates the dynamic $PORT environment variable assigned by hosting vendors
