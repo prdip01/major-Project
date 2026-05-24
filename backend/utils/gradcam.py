@@ -30,11 +30,11 @@ def generate_gradcam(model, img_array: np.ndarray, class_idx: int, pil_image: Im
         Base64-encoded PNG string of the Grad-CAM overlay.
     """
     try:
-        import tensorflow as tf
-
         if model is None:
             # Demo mode: generate a fake heatmap for demonstration
             return _generate_demo_gradcam(pil_image)
+
+        import tensorflow as tf
 
         # Find the last convolutional layer in EfficientNetB0
         # For EfficientNetB0, the last conv layer is named 'top_conv'

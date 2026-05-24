@@ -34,6 +34,18 @@ def load_model():
     if os.environ.get("DEMO_ONLY") == "true":
         return None
 
+    # --- RENDER CLOUD HOSTING MEMORY LIMIT GUARD ---
+    # Render's free tier has a strict 512 MB RAM cap.
+    # Importing TensorFlow and loading the 134 MB CNN model easily consumes 600MB+ RAM.
+    # To prevent Out-Of-Memory (OOM) crashes on Render, we force DEMO_MODE in cloud deploys.
+    if os.environ.get("RENDER") == "true":
+        logger.warning(
+            "🌐 ACTIVE CLOUD DEPLOYMENT DETECTED (Render.com)\n"
+            "   Enforcing simulated predictions to comply with 512MB RAM constraints.\n"
+            "   ✨ Local deployment will still run full EfficientNetB0 real predictions!"
+        )
+        return None
+
     global _model
     if _model is not None:
         return _model
