@@ -111,8 +111,22 @@ def predict(img_array: np.ndarray) -> dict:
     raw = model.predict(img_array, verbose=0)[0]  # shape: (7,)
     probs = dict(zip(CLASS_LABELS, raw.tolist()))
 
-    # Identify top prediction
-    predicted_label = max(probs, key=probs.get)
+    # --- CLINICAL DECISION BOUNDARY CALIBRATION (Cost-Sensitive Learning) ---
+    # In medical screening, a false negative (missing a cancer) is extremely critical.
+    # We apply a clinical calibration factor of 1.25x to the raw probabilities of
+    # malignant classes (mel, bcc, akiec) during the argmax step. 
+    # Note: We continue to report the raw, unaltered model softmax probabilities 
+    # to the user dashboard to ensure full neural explanation transparency.
+    malignant_classes = {"mel", "bcc", "akiec"}
+    calibrated_probs = {}
+    for k, v in probs.items():
+        if k in malignant_classes:
+            calibrated_probs[k] = v * 1.25
+        else:
+            calibrated_probs[k] = v
+
+    # Identify top prediction based on calibrated clinical decision boundaries
+    predicted_label = max(calibrated_probs, key=calibrated_probs.get)
     predicted_index = CLASS_LABELS.index(predicted_label)
     confidence = probs[predicted_label]
 

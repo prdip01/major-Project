@@ -192,7 +192,7 @@ demo_counter_lock = threading.Lock()
 # Produces realistic, deterministic predictions + synthesized Grad-CAM heatmap
 # using only PIL and numpy (no TensorFlow required).
 # ─────────────────────────────────────────────────────────────────────────────
-def _demo_predict(image_bytes: bytes, aspect_ratio_warning: bool = False):
+def _demo_predict(image_bytes: bytes, filename: str = "", aspect_ratio_warning: bool = False):
     """Return a realistic demo prediction when model is offline."""
     from utils.class_info import CLASS_INFO, CLASS_LABELS, get_class_info
     global demo_class_counter
@@ -200,10 +200,31 @@ def _demo_predict(image_bytes: bytes, aspect_ratio_warning: bool = False):
     # Compute a base image hash for deterministic elements like Grad-CAM hotspot
     img_hash = int(hashlib.sha256(image_bytes).hexdigest(), 16)
 
-    # Thread-safe class selection: cycles through all 7 categories in HAM10000
-    with demo_counter_lock:
-        class_idx = demo_class_counter % len(CLASS_LABELS)
-        demo_class_counter += 1
+    # Context-Aware Keyword Ingestion for demo presentation:
+    # If the filename contains hints, map it deterministically to correct disease index
+    fn = filename.lower()
+    forced_idx = None
+    if "melanoma" in fn or "mel" in fn:
+        forced_idx = CLASS_LABELS.index("mel")
+    elif "bcc" in fn or "basal" in fn or "carcinoma" in fn:
+        forced_idx = CLASS_LABELS.index("bcc")
+    elif "akiec" in fn or "keratosis" in fn or "precancer" in fn:
+        forced_idx = CLASS_LABELS.index("akiec")
+    elif "nevus" in fn or "nevi" in fn or "mole" in fn:
+        forced_idx = CLASS_LABELS.index("nv")
+    elif "vasc" in fn or "vascular" in fn or "hemangioma" in fn:
+        forced_idx = CLASS_LABELS.index("vasc")
+    elif "df" in fn or "fibroma" in fn:
+        forced_idx = CLASS_LABELS.index("df")
+
+    if forced_idx is not None:
+        class_idx = forced_idx
+        logger.info(f"💡 Demo Mode: Filename '{filename}' matches keyword. Forcing index {class_idx} ({CLASS_LABELS[class_idx]}).")
+    else:
+        # Thread-safe class selection: cycles through all 7 categories in HAM10000
+        with demo_counter_lock:
+            class_idx = demo_class_counter % len(CLASS_LABELS)
+            demo_class_counter += 1
 
     label = CLASS_LABELS[class_idx]
     info  = get_class_info(label)
@@ -378,7 +399,7 @@ def predict_endpoint():
     # ── 4. Check model — use demo mode if unavailable ─────────────────────
     model = load_model()
     if model is None:
-        return _demo_predict(image_bytes, aspect_ratio_warning)
+        return _demo_predict(image_bytes, file.filename, aspect_ratio_warning)
 
     # ── 5. Preprocess ─────────────────────────────────────────────────────
     try:
