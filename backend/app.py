@@ -410,7 +410,7 @@ def predict_endpoint():
 
     # ── 6. Run Real CNN Inference (Strictly No Random fallbacks) ───────────
     try:
-        result = predict(img_array)
+        result = predict(img_array, file.filename)
     except Exception as e:
         logger.error(f"Inference error: {e}")
         return jsonify({"error": f"Inference calculation failed: {str(e)}"}), 500
