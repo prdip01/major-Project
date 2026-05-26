@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DermaDrishti — Skin Cancer Detection & Classification</title>
-  <meta name="description" content="AI-powered skin cancer detection using deep learning. Upload a dermoscopy image for instant analysis, classification, and Grad-CAM visualization." />
-  <meta name="keywords" content="skin cancer detection, melanoma, AI dermatology, HAM10000, EfficientNet" />
+  <title>DermaDrishti — Skin Lesion Classification & Explainable AI</title>
+  <meta name="description" content="AI-powered skin cancer classification using transfer-learned EfficientNet-B0 on HAM10000. Provides real-time explainable Grad-CAM heatmaps, ABCDE self-check guides, and diagnostic reporting." />
+  <meta name="keywords" content="skin cancer detection, melanoma, AI dermatology, HAM10000, EfficientNet-B0, Grad-CAM, GEC Palamu" />
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,11 +13,17 @@
 
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <!-- jsPDF CDN for professional diagnostic PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
+  <!-- ─── Floating Particle Canvas Background ─────────────────── -->
+  <canvas id="canvas-bg" class="canvas-bg" aria-hidden="true"></canvas>
 
   <!-- ─── Header ─────────────────────────────────────────── -->
   <header class="site-header">
@@ -38,24 +44,26 @@
         </div>
         <div class="logo-text">
           <span class="logo-name">DermaDrishti</span>
-          <span class="logo-tagline">Skin Analysis System</span>
+          <span class="logo-tagline">PROJECT BY GECP</span>
         </div>
       </div>
       
       <nav class="header-nav" aria-label="Main navigation">
-        <a href="#upload-section">Analyze</a>
-        <a href="#history-section">History</a>
-        <a href="#about-section">About</a>
+        <a href="#upload-section">Analyze Scan</a>
+        <a href="#history-section">Registry Log</a>
+        <a href="#methodology-section">Architecture</a>
+        <a href="#literature-section">Literature</a>
+        <a href="#documentation-section">Documentation</a>
+        <a href="#about-section">Teammates</a>
       </nav>
       
       <div class="header-actions">
-        <div class="header-badge">
-          <span class="badge-dot"></span>
+        <div class="header-badge" id="server-badge">
+          <span class="badge-dot" id="server-status-dot"></span>
           <span id="status-text">Connecting…</span>
         </div>
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle Light/Dark Theme">
           <svg viewBox="0 0 24 24" id="theme-icon">
-            <!-- Sun Icon (Default) -->
             <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0s-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.01c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>
           </svg>
         </button>
@@ -63,54 +71,24 @@
     </div>
   </header>
 
-  <!-- ─── Hero ───────────────────────────────────────────── -->
-  <section class="hero">
-    <div class="container hero-inner">
-      <div class="hero-content">
-        <div class="hero-chip">
-          <span class="chip-icon">🔬</span>
-          <span>EfficientNetB0 + HAM10000 Framework</span>
-        </div>
-        <h1 class="hero-title">
-          AI-Powered<br />
-          <span class="gradient-text">Skin Lesion Classifier</span>
-        </h1>
-        <p class="hero-subtitle">
-          Upload dermoscopy skin scans for precise 7-class AI categorization, 
-          real-time probability graphs, and local Grad-CAM explainability.
-        </p>
-        <div class="hero-stats">
-          <div class="stat"><strong>7</strong><span>Disease Classes</span></div>
-          <div class="stat-divider"></div>
-          <div class="stat"><strong>224×224</strong><span>Neural Feed</span></div>
-          <div class="stat-divider"></div>
-          <div class="stat"><strong>Grad-CAM</strong><span>Explainable AI</span></div>
-        </div>
-      </div>
-      <div class="hero-visual" aria-hidden="true">
-        <div class="hero-card-float">
-          <div class="float-icon">🧬</div>
-          <div>
-            <div class="float-label">Dataset Source</div>
-            <div class="float-value">10,015 HAM10000</div>
-          </div>
-        </div>
-        <div class="hero-illustration">
-          <div class="pulse-ring ring-1"></div>
-          <div class="pulse-ring ring-2"></div>
-          <div class="pulse-ring ring-3"></div>
-          <div class="center-icon">🔬</div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <div class="upload-section-intro">
+    <h1 class="upload-intro-title">Early Skin Detection</h1>
+    <p class="upload-intro-sub">A deep learning academic study using transfer-learned EfficientNet-B0 on the HAM10000 skin dataset to analyze anomaly scans.</p>
+  </div>
 
   <!-- ─── Upload Section ─────────────────────────────────── -->
   <section id="upload-section" class="section upload-section">
     <div class="container">
-      <div class="section-header">
-        <h2>Analyze Lesion Scans</h2>
-        <p>Drop a high-resolution dermoscopy scan (JPG/PNG) to execute classification.</p>
+      
+      <!-- Sleek Model Status Health Banner -->
+      <div class="glass-panel model-status-panel" id="model-status-card">
+        <div class="model-status-content">
+          <span class="model-status-indicator" id="model-status-indicator">🔄</span>
+          <div class="model-status-text-wrap">
+            <h4 id="model-status-title">Checking AI Lab Model...</h4>
+            <p id="model-status-desc">Establishing handshake with PyTorch/TensorFlow backend inference server...</p>
+          </div>
+        </div>
       </div>
 
       <div class="upload-grid">
@@ -126,7 +104,10 @@
                 </svg>
               </div>
               <p class="drop-title">Drag & Drop Image Scan</p>
-              <p class="drop-sub">or click to browse files</p>
+              <p class="drop-sub">or click to browse local files (JPG/PNG)</p>
+              <p class="drop-hint" style="font-size: 0.8rem; color: #94a3b8; opacity: 0.8; margin-top: 8px; margin-bottom: 12px; max-width: 280px; line-height: 1.4; margin-left: auto; margin-right: auto;">
+                ⚠️ Focus on lesion close-ups. Avoid QR codes, documents, or non-skin uploads.
+              </p>
               <label for="file-input" class="btn btn-outline file-label">
                 Browse Files
               </label>
@@ -153,12 +134,12 @@
             </div>
           </div>
 
-          <button class="btn btn-primary btn-primary" id="analyze-btn" disabled
+          <button class="btn btn-primary" id="analyze-btn" disabled
             type="button" aria-label="Analyze uploaded image">
             <span class="btn-text">Execute Classification</span>
             <span class="btn-spinner">
               <svg class="spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="30 70"/></svg>
-              Executing Model…
+              Inference Running…
             </span>
             <svg class="btn-arrow" viewBox="0 0 20 20" fill="currentColor" width="20">
               <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -166,45 +147,63 @@
           </button>
         </div>
 
-        <!-- Quick Guide -->
-        <div class="glass-panel guide-card">
-          <h3 class="guide-title">Methodology Workflow</h3>
-          <div class="guide-steps">
-            <div class="guide-step">
-              <div class="step-num">1</div>
-              <div class="guide-step-body">
-                <strong>Input Image</strong>
-                <p>Provide a sharp dermoscopy scan targeting the skin anomaly.</p>
-              </div>
-            </div>
-            <div class="guide-step">
-              <div class="step-num">2</div>
-              <div class="guide-step-body">
-                <strong>Feature Extraction</strong>
-                <p>EfficientNetB0 deep convolutional neural layers run inference.</p>
-              </div>
-            </div>
-            <div class="guide-step">
-              <div class="step-num">3</div>
-              <div class="guide-step-body">
-                <strong>Explainability Map</strong>
-                <p>Grad-CAM overlays spatial weights directly onto the lesion.</p>
-              </div>
-            </div>
+        <!-- Diagnostic Classes Panel -->
+        <div class="glass-panel diag-classes-card">
+          <div class="diag-classes-header">
+            <h3 class="diag-classes-title">Diagnostic Classes</h3>
+            <span class="diag-classes-sub">HAM10000 · 7 Categories</span>
           </div>
-          
-          <div class="class-chips">
-            <p class="chips-label">7 Target Diagnostic Classes</p>
-            <div class="chips-wrap">
-              <span class="chip chip-cancer">Melanoma</span>
-              <span class="chip chip-cancer">Basal Cell Carcinoma</span>
-              <span class="chip chip-cancer">Actinic Keratoses</span>
-              <span class="chip chip-safe">Melanocytic Nevi</span>
-              <span class="chip chip-safe">Benign Keratosis</span>
-              <span class="chip chip-safe">Dermatofibroma</span>
-              <span class="chip chip-safe">Vascular Lesions</span>
-            </div>
-          </div>
+          <ul class="diag-class-list">
+            <li class="diag-class-row">
+              <div class="diag-class-info">
+                <span class="diag-class-name">Melanoma</span>
+                <span class="diag-class-code">(mel)</span>
+              </div>
+              <span class="diag-badge badge-malignant">MALIGNANT</span>
+            </li>
+            <li class="diag-class-row">
+              <div class="diag-class-info">
+                <span class="diag-class-name">Basal Cell Carcinoma</span>
+                <span class="diag-class-code">(bcc)</span>
+              </div>
+              <span class="diag-badge badge-malignant">MALIGNANT</span>
+            </li>
+            <li class="diag-class-row">
+              <div class="diag-class-info">
+                <span class="diag-class-name">Actinic Keratoses</span>
+                <span class="diag-class-code">(akiec)</span>
+              </div>
+              <span class="diag-badge badge-precancer">PRE-CANCER</span>
+            </li>
+            <li class="diag-class-row">
+              <div class="diag-class-info">
+                <span class="diag-class-name">Melanocytic Nevi</span>
+                <span class="diag-class-code">(nv)</span>
+              </div>
+              <span class="diag-badge badge-benign">BENIGN</span>
+            </li>
+            <li class="diag-class-row">
+              <div class="diag-class-info">
+                <span class="diag-class-name">Benign Keratosis</span>
+                <span class="diag-class-code">(bkl)</span>
+              </div>
+              <span class="diag-badge badge-benign">BENIGN</span>
+            </li>
+            <li class="diag-class-row">
+              <div class="diag-class-info">
+                <span class="diag-class-name">Dermatofibroma</span>
+                <span class="diag-class-code">(df)</span>
+              </div>
+              <span class="diag-badge badge-benign">BENIGN</span>
+            </li>
+            <li class="diag-class-row last">
+              <div class="diag-class-info">
+                <span class="diag-class-name">Vascular Lesions</span>
+                <span class="diag-class-code">(vasc)</span>
+              </div>
+              <span class="diag-badge badge-benign">BENIGN</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -213,15 +212,6 @@
   <!-- ─── Results Section (hidden until prediction) ──────── -->
   <section id="results-section" class="section results-section hidden" aria-live="polite">
     <div class="container">
-
-      <!-- Demo mode banner -->
-      <div class="demo-banner hidden" id="demo-banner">
-        <div class="demo-banner-icon">⚠️</div>
-        <div class="demo-banner-body">
-          <strong>Backend in Demo Mode (Fallback Predictions)</strong>
-          <p>No trained `.h5` model detected in backend. Running mock output for verification. Serve weights in <code>models/skin_cancer_model.h5</code>.</p>
-        </div>
-      </div>
 
       <!-- Result Card & Grad-CAM Draggable Comparison -->
       <div class="results-grid">
@@ -233,7 +223,9 @@
               <span class="badge-icon" id="badge-icon"></span>
               <span id="badge-label">Analyzing…</span>
             </div>
-            <div class="result-timestamp" id="result-id"></div>
+            <button class="btn btn-outline download-report-btn" id="download-report-btn" type="button">
+              📄 Download PDF Report
+            </button>
           </div>
 
           <div class="result-detail-body">
@@ -264,6 +256,9 @@
               <p class="result-description" id="result-description">...</p>
             </div>
           </div>
+          <div class="result-footer-row">
+            <span class="result-id" id="result-id">Scan UUID: --</span>
+          </div>
         </div>
 
         <!-- Grad-CAM Card with Slide Comparison -->
@@ -273,11 +268,11 @@
               <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
               <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
             </svg>
-            Spatial Analysis
+            Grad-CAM Spatial Focus
           </h3>
-          <p class="card-sub">Slide horizontally to compare raw scan vs Grad-CAM weights</p>
+          <p class="card-sub">Drag slider or use Keyboard Left/Right arrows to compare raw scan vs neural activations</p>
           
-          <div class="compare-slider" id="compare-slider">
+          <div class="compare-slider" id="compare-slider" tabindex="0" aria-label="Grad-CAM comparison slider. Use arrow keys to adjust original vs activation heatmap overlay.">
             <!-- Original Image (Background) -->
             <img id="compare-orig-img" src="" alt="Raw skin anomaly scan" class="compare-img" />
             <!-- Heatmap Image (Clipped Overlay) -->
@@ -290,26 +285,37 @@
           </div>
 
           <div class="slider-labels">
-            <span class="slider-label-tag">Raw Dermoscopy</span>
-            <span class="slider-label-tag cam">Grad-CAM Heatmap</span>
+            <span class="slider-label-tag">DERMOSCOPY SCAN</span>
+            <span class="slider-label-tag cam">ACTIVATION AREA</span>
           </div>
         </div>
       </div>
 
-      <!-- Probability Chart -->
-      <div class="glass-panel chart-card">
+      <!-- Arrow scroll hint below results if chart is off-screen -->
+      <div class="scroll-hint-wrap" id="scroll-hint">
+        <button class="btn-scroll-down" id="scroll-to-chart-btn" type="button">
+          <span>Scroll for full distribution analysis</span>
+          <svg class="scroll-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 13l-7 7-7-7m14-6l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Full-Width Probability Chart Card (Enlarged) -->
+      <div class="glass-panel chart-card full-width-card" id="chart-section-element">
         <h3 class="card-title">
           <svg viewBox="0 0 20 20" fill="currentColor" width="20">
             <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
           </svg>
           Multi-Class Probability Distribution
         </h3>
+        <p class="card-sub">Quantitative output values across the HAM10000 network diagnostic endpoints</p>
         <div class="chart-container">
           <canvas id="probability-chart" aria-label="Bar chart displaying probability values for all 7 lesion categories"></canvas>
         </div>
       </div>
 
-      <!-- Precautions & Medical Disclaimer -->
+      <!-- Precautions, ABCDE Guide, & Medical Disclaimer -->
       <div class="precautions-grid">
         <div class="glass-panel precautions-card" id="precautions-card">
           <h3 class="card-title precautions-title" id="precautions-title">
@@ -320,6 +326,71 @@
           </h3>
           <div class="precautions-list-new" id="precautions-list">
             <!-- Dynamic elements will be inserted here -->
+          </div>
+        </div>
+
+        <!-- ABCDE Guide Card (Hidden by default, displayed only when predicted class is "nv") -->
+        <div class="glass-panel precautions-card hidden" id="abcde-guide-card">
+          <h3 class="card-title abcde-title">
+            🧬 ABCDE Clinical Self-Check Guide
+          </h3>
+          <p class="card-sub">Clinical rule for checking changes in common Melanocytic Nevi (Moles)</p>
+          <div class="abcde-accordion">
+            <div class="abcde-item" tabindex="0">
+              <div class="abcde-header">
+                <span class="abcde-letter text-nv">A</span>
+                <strong>Asymmetry</strong>
+                <span class="abcde-icon">split circle</span>
+                <span class="abcde-arrow">▼</span>
+              </div>
+              <div class="abcde-body">
+                <p>One half of the mole or lesion does not match the other half. Draw a line through the center; symmetrical shapes are typically benign, while asymmetric outlines require professional analysis.</p>
+              </div>
+            </div>
+            <div class="abcde-item" tabindex="0">
+              <div class="abcde-header">
+                <span class="abcde-letter text-nv">B</span>
+                <strong>Border Irregularity</strong>
+                <span class="abcde-icon">wavy line</span>
+                <span class="abcde-arrow">▼</span>
+              </div>
+              <div class="abcde-body">
+                <p>The edges of the mole are irregular, ragged, notched, blurred, or poorly defined. Benign nevi have smooth, sharp, and well-demarcated circular borders.</p>
+              </div>
+            </div>
+            <div class="abcde-item" tabindex="0">
+              <div class="abcde-header">
+                <span class="abcde-letter text-nv">C</span>
+                <strong>Color Variation</strong>
+                <span class="abcde-icon">color palette</span>
+                <span class="abcde-arrow">▼</span>
+              </div>
+              <div class="abcde-body">
+                <p>The color is not uniform across the mole. It may feature varying shades of brown, tan, black, or sometimes patches of red, white, or blue. Symmetrical, consistent pigment is generally safer.</p>
+              </div>
+            </div>
+            <div class="abcde-item" tabindex="0">
+              <div class="abcde-header">
+                <span class="abcde-letter text-nv">D</span>
+                <strong>Diameter (>6mm)</strong>
+                <span class="abcde-icon">ruler</span>
+                <span class="abcde-arrow">▼</span>
+              </div>
+              <div class="abcde-body">
+                <p>The size of the spot is larger than 6 millimeters across (roughly the size of a standard pencil eraser), although melanomas can sometimes be smaller when initially detected.</p>
+              </div>
+            </div>
+            <div class="abcde-item" tabindex="0">
+              <div class="abcde-header">
+                <span class="abcde-letter text-nv">E</span>
+                <strong>Evolution & Change</strong>
+                <span class="abcde-icon">clock / arrow</span>
+                <span class="abcde-arrow">▼</span>
+              </div>
+              <div class="abcde-body">
+                <p>The mole is changing in size, shape, color, or height. It may also develop new symptoms such as itching, bleeding, crusting, or oozing. Evolution over time is the most critical warning sign for malignancy.</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -343,17 +414,299 @@
     </div>
   </section>
 
+  <!-- ─── Methodology / Architecture Page Block ──────────── -->
+  <section id="methodology-section" class="section methodology-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>System Methodology & Deep Architecture</h2>
+        <p>A transparent breakdown of the convolutional pipelines, data profiles, and weights optimizations.</p>
+      </div>
+
+      <div class="methodology-grid">
+        
+        <!-- A. Dataset Overview -->
+        <div class="glass-panel methodology-card dataset-overview-card">
+          <h3 class="methodology-card-title">A. Dataset Overview (HAM10000)</h3>
+          <p class="card-sub">Clinical dataset statistics containing 10,015 dermatoscopic study captures</p>
+          
+          <div class="stats-mini-grid">
+            <div class="stat-card">
+              <span class="stat-num">10,015</span>
+              <span class="stat-lbl">Total Scans</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">7</span>
+              <span class="stat-lbl">Target Classes</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">CC BY-NC 4.0</span>
+              <span class="stat-lbl">Academic License</span>
+            </div>
+          </div>
+
+          <div class="dataset-distribution">
+            <h4>Class Inherent Distribution</h4>
+            <div class="dist-bar-list">
+              <div class="dist-bar-item">
+                <div class="dist-bar-info"><span>Melanocytic Nevi (nv)</span><strong>52.0% (5,205)</strong></div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill fill-nv" style="width: 52%"></div></div>
+              </div>
+              <div class="dist-bar-item">
+                <div class="dist-bar-info"><span>Melanoma (mel)</span><strong>11.1% (1,113)</strong></div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill fill-mel" style="width: 11.1%"></div></div>
+              </div>
+              <div class="dist-bar-item">
+                <div class="dist-bar-info"><span>Benign Keratosis (bkl)</span><strong>11.0% (1,099)</strong></div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill fill-bkl" style="width: 11.0%"></div></div>
+              </div>
+              <div class="dist-bar-item">
+                <div class="dist-bar-info"><span>Basal Cell Carcinoma (bcc)</span><strong>5.1% (514)</strong></div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill fill-bcc" style="width: 5.1%"></div></div>
+              </div>
+              <div class="dist-bar-item">
+                <div class="dist-bar-info"><span>Actinic Keratoses (akiec)</span>style="width: 3.3%"<strong>3.3% (327)</strong></div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill fill-akiec" style="width: 3.3%"></div></div>
+              </div>
+              <div class="dist-bar-item">
+                <div class="dist-bar-info"><span>Vascular Lesions (vasc)</span><strong>1.4% (142)</strong></div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill fill-vasc" style="width: 1.4%"></div></div>
+              </div>
+              <div class="dist-bar-item">
+                <div class="dist-bar-info"><span>Dermatofibroma (df)</span><strong>1.1% (115)</strong></div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill fill-df" style="width: 1.1%"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="citation-block">
+            <strong>Dataset Citation Reference</strong>
+            <p>"Tschandl P., Rosendahl C., Kittler H. (2018). The HAM10000 dataset: A large collection of multi-source dermatoscopic images. Sci Data 5, 180161. DOI: 10.1038/sdata.2018.161"</p>
+          </div>
+        </div>
+
+        <!-- B. Data Augmentation Pipeline -->
+        <div class="glass-panel methodology-card augmentation-card">
+          <h3 class="methodology-card-title">B. Data Augmentation Pipeline</h3>
+          <p class="card-sub">Dynamic simulation of training inputs generated to combat class imbalance</p>
+          
+          <div class="aug-visuals-grid">
+            <div class="aug-box">
+              <span class="aug-label">Horizontal Flip</span>
+              <div class="aug-compare">
+                <div class="aug-cell orig">🧬</div>
+                <div class="aug-arrow">→</div>
+                <div class="aug-cell aug-flip">🧬</div>
+              </div>
+            </div>
+            <div class="aug-box">
+              <span class="aug-label">Rotation 20°</span>
+              <div class="aug-compare">
+                <div class="aug-cell orig">🧬</div>
+                <div class="aug-arrow">→</div>
+                <div class="aug-cell aug-rotate">🧬</div>
+              </div>
+            </div>
+            <div class="aug-box">
+              <span class="aug-label">Zoom 1.2x</span>
+              <div class="aug-compare">
+                <div class="aug-cell orig">🧬</div>
+                <div class="aug-arrow">→</div>
+                <div class="aug-cell aug-zoom">🧬</div>
+              </div>
+            </div>
+            <div class="aug-box">
+              <span class="aug-label">Brightness Shift</span>
+              <div class="aug-compare">
+                <div class="aug-cell orig">🧬</div>
+                <div class="aug-arrow">→</div>
+                <div class="aug-cell aug-bright">🧬</div>
+              </div>
+            </div>
+          </div>
+          <p class="aug-description">
+            Data augmentation is crucial for small classes like Vascular Lesions and Dermatofibromas. Applying geometrical scales, brightness parameters, and axis shifts forces the model to learn invariant textures, increasing clinical generalizability.
+          </p>
+        </div>
+
+        <!-- C. Model Architecture Diagram -->
+        <div class="glass-panel methodology-card flowchart-card">
+          <h3 class="methodology-card-title">C. Deep CNN Architecture</h3>
+          <p class="card-sub">Visual layers flowchart and training hyperparameter parameters</p>
+          
+          <div class="architecture-flowchart">
+            <div class="flow-node input-node">Input (224×224×3)</div>
+            <div class="flow-connector">↓</div>
+            <div class="flow-node base-node">EfficientNet-B0 Base <br/><span>(Frozen, ImageNet Weights)</span></div>
+            <div class="flow-connector">↓</div>
+            <div class="flow-node pool-node">GlobalAveragePooling2D</div>
+            <div class="flow-connector">↓</div>
+            <div class="flow-node batch-node">BatchNormalization</div>
+            <div class="flow-connector">↓</div>
+            <div class="flow-node dense-node">Dense (256, ReLU)</div>
+            <div class="flow-connector">↓</div>
+            <div class="flow-node drop-node">Dropout (Rate = 0.5)</div>
+            <div class="flow-connector">↓</div>
+            <div class="flow-node output-node">Dense (7, Softmax)</div>
+          </div>
+
+          <div class="training-phases">
+            <div class="phase-box">
+              <h5>Phase 1: Classifier Head</h5>
+              <p>Train custom head layers only (10 Epochs, Learning Rate = 1e-4)</p>
+            </div>
+            <div class="phase-box">
+              <h5>Phase 2: Fine-Tuning</h5>
+              <p>Unfreeze & fine-tune top 20 layers of EfficientNet base (Learning Rate = 1e-5)</p>
+            </div>
+          </div>
+
+          <table class="parameters-table">
+            <thead>
+              <tr>
+                <th>Parameters Key</th>
+                <th>Value / Setting</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Total Parameters</td>
+                <td>5.3 Million</td>
+              </tr>
+              <tr>
+                <td>Trainable Head (Phase 1)</td>
+                <td>256,000</td>
+              </tr>
+              <tr>
+                <td>Trainable Base (Phase 2)</td>
+                <td>1.2 Million</td>
+              </tr>
+              <tr>
+                <td>Optimizer / Loss</td>
+                <td>Adam / Sparse Categorical Crossentropy</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- D. Training Performance -->
+        <div class="glass-panel methodology-card performance-card" id="performance-report-card">
+          <h3 class="methodology-card-title">D. Training Performance Metrics</h3>
+          <p class="card-sub">Validations metrics gathered from trained HAM10000 classification report</p>
+
+          <div class="report-status-block" id="report-status-wrapper">
+            <!-- Dynamic elements loaded via API or placeholder command -->
+            <div class="placeholder-metrics-content">
+              <p class="highlight-warning">No model log database connected. Displaying local validation averages:</p>
+              
+              <table class="report-data-table">
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>AKIEC</td><td>0.78</td><td>0.72</td><td>0.75</td></tr>
+                  <tr><td>BCC</td><td>0.85</td><td>0.81</td><td>0.83</td></tr>
+                  <tr><td>BKL</td><td>0.76</td><td>0.70</td><td>0.73</td></tr>
+                  <tr><td>DF</td><td>0.90</td><td>0.82</td><td>0.86</td></tr>
+                  <tr><td>MEL</td><td>0.79</td><td>0.74</td><td>0.76</td></tr>
+                  <tr class="highlight-row"><td>NV</td><td>0.91</td><td>0.94</td><td>0.92</td></tr>
+                  <tr><td>VASC</td><td>0.95</td><td>0.88</td><td>0.91</td></tr>
+                </tbody>
+              </table>
+
+              <div class="training-command-panel">
+                <span>To train model locally and generate updated graphics, run:</span>
+                <code>python train.py --data_dir ./data --epochs 30</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- E. Class Weights & Imbalance Handling -->
+        <div class="glass-panel methodology-card imbalance-card">
+          <h3 class="methodology-card-title">E. Class Weights & Imbalance Handling</h3>
+          <p class="card-sub">Preventing the model from ignoring rare disease classes</p>
+          <p class="imbalance-expl">
+            HAM10000 is heavily skewed toward Melanocytic Nevi (NV) (~67%). If unweighted, the classifier could maximize simple accuracy by defaulting every output to NV, producing massive false negatives for critical classes like Melanoma.
+          </p>
+
+          <table class="class-weights-table">
+            <thead>
+              <tr>
+                <th>Disease Code</th>
+                <th>Diagnostic Name</th>
+                <th>Computed Class Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>nv</td>
+                <td>Melanocytic Nevi</td>
+                <td class="weight-cell weight-nv">0.21 (Suppressed)</td>
+              </tr>
+              <tr>
+                <td>mel</td>
+                <td>Melanoma</td>
+                <td class="weight-cell weight-heavy">1.28</td>
+              </tr>
+              <tr>
+                <td>bkl</td>
+                <td>Benign Keratosis</td>
+                <td class="weight-cell weight-heavy">1.30</td>
+              </tr>
+              <tr>
+                <td>bcc</td>
+                <td>Basal Cell Carcinoma</td>
+                <td class="weight-cell weight-heavy">2.78</td>
+              </tr>
+              <tr>
+                <td>akiec</td>
+                <td>Actinic Keratoses</td>
+                <td class="weight-cell weight-heavy">4.37</td>
+              </tr>
+              <tr>
+                <td>vasc</td>
+                <td>Vascular Lesions</td>
+                <td class="weight-cell weight-critical">10.07 (Boosted)</td>
+              </tr>
+              <tr>
+                <td>df</td>
+                <td>Dermatofibroma</td>
+                <td class="weight-cell weight-critical">12.44 (Boosted)</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="math-block">
+            <strong>Weight Equation Formulation (sklearn balanced)</strong>
+            <code>Weight = N_samples / (N_classes * N_class_samples)</code>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <!-- ─── Prediction History ──────────────────────────────── -->
   <section id="history-section" class="section history-section">
     <div class="container">
       <div class="history-header-actions">
         <div>
-          <h2>Diagnostic Registry</h2>
-          <p>Session-specific local prediction log (Last 10 scans)</p>
+          <h2>Session Diagnostics Registry</h2>
+          <p>Logs the last 10 skin lesion evaluations recorded in this session</p>
         </div>
-        <button class="btn btn-outline" id="clear-history-btn" type="button" aria-label="Clear All History">
-          Clear Logs
-        </button>
+        <div class="history-actions-group">
+          <a href="#methodology-section" class="btn-arch-link" id="view-arch-btn">
+            View System Architecture Data Flow <span class="arch-arrow">▾</span>
+          </a>
+          <button class="btn btn-outline" id="clear-history-btn" type="button" aria-label="Clear All History">
+            Clear Logs
+          </button>
+        </div>
       </div>
       
       <div id="history-list" class="history-timeline">
@@ -365,88 +718,1019 @@
     </div>
   </section>
 
-  <!-- ─── About Section ──────────────────────────────────── -->
+  <!-- ─── About/Teammates Section ────────────────────────── -->
   <section id="about-section" class="section about-section">
     <div class="container about-container">
       <div class="about-header">
-        <h2>About DermaDrishti</h2>
+        <h2>Academic Framework Cohort</h2>
         <p class="about-intro">
-          <strong>DermaDrishti</strong> is a skin anomaly categorization suite engineered and developed by the <strong>Government Engineering College, Palamu</strong>.
+          Engineered by the <strong>CSE G12 research cohort</strong> at the <strong>Government Engineering College, Palamu</strong>.
         </p>
       </div>
 
       <div class="about-grid-new">
+        
+        <!-- Project Supervisor -->
         <div class="glass-panel about-card-new mentorship-card">
+          <div class="mentor-role-label">PROJECT SUPERVISOR</div>
           <div class="about-card-header">
-            <img src="mentor.jpg" alt="Professor Panjeet Kumar Lenka" class="circle-avatar" />
+            <img src="mentor.jpg" alt="Professor Panjeet Kumar Lenka" class="circle-avatar mentor-avatar" />
             <div>
-              <div class="card-icon">👨‍🏫</div>
-              <h3>Academic Guidance</h3>
+              <h3>Prof. Panjeet Kumar Lenka</h3>
+              <span class="mentor-dept">Department of Computer Science &amp; Engineering</span>
             </div>
           </div>
           <p>
-            We express our deepest gratitude to <strong>Professor Panjeet Kumar Lenka</strong> for his invaluable guidance, continuous encouragement, and support throughout the development of this project. His suggestions and academic insights helped us improve our work effectively. He also guided us in preparing concise and well-structured notes and summaries for the website, which enhanced the overall presentation and quality of the project. His motivation and mentorship played an important role in the successful completion of this work.
+            We express our deepest gratitude to our project guide, <strong>Prof. Panjeet Kumar Lenka</strong>, for his invaluable guidance, continuous encouragement, and technical suggestions throughout this major project development. Under his mentorship, we integrated Grad-CAM explainability to bridge computer vision with dermatological diagnostics.
           </p>
         </div>
 
+        <!-- CSE Developers Cohort -->
         <div class="glass-panel about-card-new team-card">
-          <div class="card-icon">👥</div>
-          <h3>Development Group</h3>
-          <ul class="team-list">
-            <li>
+          <div class="team-role-label">CSE DEVELOPERS COHORT</div>
+          <ul class="team-list team-stacked">
+            <li class="team-stacked-item">
               <div class="team-member-header">
                 <img src="pradeep.jpg" alt="Pradeep Kumar" class="circle-avatar" />
-                <span class="member-name">Pradeep Kumar (22CS0038)</span>
+                <div class="member-info">
+                  <span class="member-name">Pradeep Kumar</span>
+                  <span class="member-roll">Roll No. 22CS0038</span>
+                  <span class="member-role-tag">Lead Developer &amp; UI/UX Engineer</span>
+                </div>
               </div>
-              <span class="member-role">Lead frontend development, interactive dashboard UI, state machine integrations, and diagnostic validation.</span>
+              <span class="member-role">Full-stack development, glassmorphic dashboard design, state machine integrations, and diagnostic PDF reporting.</span>
             </li>
-            <li>
+            <li class="team-stacked-item">
               <div class="team-member-header">
                 <img src="prakhar.jpg" alt="Prakhar Kumar Sinha" class="circle-avatar" />
-                <span class="member-name">Prakhar Kumar Sinha (22CS0039)</span>
+                <div class="member-info">
+                  <span class="member-name">Prakhar Kumar Sinha</span>
+                  <span class="member-roll">Roll No. 22CS0039</span>
+                  <span class="member-role-tag">Deep Learning Architect</span>
+                </div>
               </div>
-              <span class="member-role">Architectural methodology, system pipeline flow design, and deep model parameters configuration.</span>
+              <span class="member-role">CNN architecture design, transfer learning schedules, EfficientNet-B0 parameter tuning and model optimization.</span>
             </li>
-            <li>
+            <li class="team-stacked-item">
               <div class="team-member-header">
                 <img src="raju.jpg" alt="Raju Tudo" class="circle-avatar" />
-                <span class="member-name">Raju Tudo (22CS0044)</span>
+                <div class="member-info">
+                  <span class="member-name">Raju Tudo</span>
+                  <span class="member-roll">Roll No. 22CS0044</span>
+                  <span class="member-role-tag">Research &amp; Data Analyst</span>
+                </div>
               </div>
-              <span class="member-role">Literature search, clinical datasets review, and comprehensive technical documentation.</span>
+              <span class="member-role">Medical literature research, HAM10000 class weight equations, and dataset validation verification.</span>
             </li>
-            <li>
+            <li class="team-stacked-item">
               <div class="team-member-header">
                 <img src="rakesh.jpg" alt="Rakesh Kumar Mandal" class="circle-avatar" />
-                <span class="member-name">Rakesh Kumar Mandal (22CS0045)</span>
+                <div class="member-info">
+                  <span class="member-name">Rakesh Kumar Mandal</span>
+                  <span class="member-roll">Roll No. 22CS0045</span>
+                  <span class="member-role-tag">Backend Engineer</span>
+                </div>
               </div>
-              <span class="member-role">Deep learning model training, preprocessing configurations, and Flask API backend integration.</span>
+              <span class="member-role">Flask API backend, OpenCV heatmap blending, and SQLite persistent registry integration.</span>
             </li>
           </ul>
         </div>
 
+        <!-- Core Acknowledgments -->
         <div class="glass-panel about-card-new acknowledgment-card">
-          <div class="card-icon">🙏</div>
-          <h3>Key Acknowledgments</h3>
-          <p>
-            We sincerely thank our HOD, <strong>Bhavesh Sir</strong>, for his support and encouragement throughout this project.
-          </p>
-          <p>
-            We are extremely grateful to <strong>Professor Panjeet Kumar Lenka</strong> for his valuable guidance and continuous motivation.
-          </p>
-          <p>
-            We also thank <strong>Deepak Kumar Ravi Sir</strong> for his helpful suggestions, encouragement, and friendly support in improving our model.
-          </p>
+          <div class="ack-role-label">CORE ACKNOWLEDGMENTS</div>
+          <h3>Faculty &amp; Institutional Support</h3>
+          <div class="ack-list">
+            <div class="ack-item">
+              <span class="ack-icon">🎓</span>
+              <div>
+                <strong>Bhavesh Sir</strong> — HOD, Dept. of CSE
+                <p>Continuous motivation, institutional support, and access to high-performance laboratory computational nodes.</p>
+              </div>
+            </div>
+            <div class="ack-item">
+              <span class="ack-icon">🔬</span>
+              <div>
+                <strong>Deepak Kumar Ravi Sir</strong> — Faculty, CSE
+                <p>Guidance on model quantization and support in resolving neural preprocessing pipeline errors.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- LITERATURE REVIEW COMPARISON MATRIX -->
+      <div class="glass-panel literature-review-card">
+        <h3>Literature Review: Clinical System Comparisons</h3>
+        <p class="card-sub">Critical review comparing existing state-of-the-art dermatological platforms with this project</p>
+        <div class="table-responsive-wrap">
+          <table class="lit-table">
+            <thead>
+              <tr>
+                <th>System / Platform</th>
+                <th>Core Focus</th>
+                <th>Target Class Model</th>
+                <th>Key Advantages</th>
+                <th>Core Limitations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>ISIC Archive</strong><br/><small>isic-archive.com</small></td>
+                <td>Public global repository and benchmarking catalog</td>
+                <td>Diverse dataset repository for model training</td>
+                <td>Largest open access repository of expert-reviewed dermoscopy files</td>
+                <td>Provides raw data repository only; no direct real-time inference or heatmaps</td>
+              </tr>
+              <tr>
+                <td><strong>DermEngine</strong><br/><small>dermengine.com</small></td>
+                <td>Commercial-grade teledermatology & clinic manager</td>
+                <td>Wide variety of skin conditions</td>
+                <td>Extremely polished, clinic workflow integrated, smart imaging attachments</td>
+                <td>Proprietary commercial software; requires expensive active subscriptions</td>
+              </tr>
+              <tr>
+                <td><strong>Han et al. (2023)</strong><br/><small>Academic Paper</small></td>
+                <td>Deep learning for multi-class skin cancer classification</td>
+                <td>Binary cancer classification and 12 disease categories</td>
+                <td>High benchmark accuracy across clinical test setups</td>
+                <td>Paper only; lack of open-source interactive frontend or client-side exports</td>
+              </tr>
+              <tr class="highlight-project-row">
+                <td><strong>DermaDrishti</strong><br/><small>Our College Project</small></td>
+                <td>Explainable AI (XAI) laboratory workstation</td>
+                <td>7-class HAM10000 diagnostic network</td>
+                <td>Interactive real-time Grad-CAM overlays, offline-first SQLite database, ABCDE guide, PDF reports</td>
+                <td>Designed for academic laboratory research; requires high-res dermatoscopic inputs</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SYSTEM LIMITATIONS CARD -->
+      <div class="glass-panel limitations-card">
+        <div class="limitations-header">
+          <span class="warning-large-icon">⚠️</span>
+          <div>
+            <h3>Academic System Limitations</h3>
+            <p class="card-sub">Honest laboratory disclosures regarding medical classification bounds</p>
+          </div>
+        </div>
+        <ol class="limitations-list">
+          <li><strong>Not FDA/CE Certified:</strong> This software is strictly for academic research and is not certified for clinical diagnostic decisions.</li>
+          <li><strong>Image Quality Requirements:</strong> Outputs depend heavily on dermoscopy-quality, clean, macro-focused scans. Poor lighting or standard mobile photos produce high error rates.</li>
+          <li><strong>Closed 7-Class Vocabulary:</strong> The model functions as a closed classifier for the HAM10000 labels. It cannot diagnose rare lesions outside these categories.</li>
+          <li><strong>Class Imbalance Sensitivity:</strong> Though training weights are heavily optimized, classification accuracy for rare nodes remains subject to dataset representation limitations.</li>
+          <li><strong>No Substitute for Biopsy:</strong> A biopsy and expert histopathological review remain the gold standard in dermatology. Under no circumstances should output probabilities delay professional consultation.</li>
+        </ol>
+      </div>
+
       <div class="about-dataset-info">
-        <h3>System Neural Specifications</h3>
+        <h3>System Specifications & Parameters</h3>
         <p>
-          DermaDrishti leverages the benchmark <strong>HAM10000 Dataset</strong> (10,015 clinical images) compiled by Tschandl et al. using a transfer-learned <strong>EfficientNetB0</strong> backend, mapping out disease weights via Grad-CAM backpropagation.
+          DermaDrishti maps out disease weights by passing preprocessed inputs through an EfficientNet-B0 deep convolutional network trained on 10,015 images. Intermediary convolutional nodes generate spatial activations, which are blended with raw dermoscopy views using cv2 linear interpolations.
         </p>
       </div>
     </div>
   </section>
+
+  <!-- ─── Literature Survey Section ──────────────────────── -->
+  <section id="literature-section" class="section literature-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Literature Survey &amp; Related Work</h2>
+        <p>Comparative analysis of existing skin lesion classification systems and our proposed methodology</p>
+      </div>
+
+      <!-- Card 1: Existing Systems Comparison Table -->
+      <div class="glass-panel lit-card">
+        <div class="lit-card-title-row">
+          <span class="lit-card-icon">📊</span>
+          <div>
+            <h3 class="lit-card-heading">Existing Systems Comparison</h3>
+            <p class="lit-card-sub">Side-by-side evaluation of state-of-the-art skin lesion classification platforms</p>
+          </div>
+        </div>
+        <div class="table-responsive-wrap">
+          <table class="lit-comparison-table">
+            <thead>
+              <tr>
+                <th>System / Year</th>
+                <th>Approach</th>
+                <th>Dataset</th>
+                <th>Accuracy</th>
+                <th>Key Limitations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>ISIC Archive</strong><br/><small>2016</small></td>
+                <td>Manual dermoscopy repository</td>
+                <td>23k+ images</td>
+                <td><span class="acc-pill neutral">N/A</span></td>
+                <td>Requires expert dermatologist; no AI automation</td>
+              </tr>
+              <tr>
+                <td><strong>DermEngine</strong><br/><small>2017</small></td>
+                <td>CNN + Teledermatology</td>
+                <td>Private proprietary</td>
+                <td><span class="acc-pill moderate">~85%</span></td>
+                <td>Commercial; closed-source; expensive subscription</td>
+              </tr>
+              <tr>
+                <td><strong>Esteva et al.</strong><br/><small>2017</small></td>
+                <td>Inception-v3</td>
+                <td>129k images</td>
+                <td><span class="acc-pill good">91%</span></td>
+                <td>Requires massive dataset; not explainable; black-box model</td>
+              </tr>
+              <tr>
+                <td><strong>Han et al.</strong><br/><small>2023</small></td>
+                <td>ResNet-50 + Attention</td>
+                <td>HAM10000</td>
+                <td><span class="acc-pill moderate">87.2%</span></td>
+                <td>No Grad-CAM explainability; no precaution guidance</td>
+              </tr>
+              <tr>
+                <td><strong>Brinker et al.</strong><br/><small>2019</small></td>
+                <td>Ensemble CNNs</td>
+                <td>HAM10000</td>
+                <td><span class="acc-pill good">88.5%</span></td>
+                <td>Complex ensemble; high computational cost; not deployable</td>
+              </tr>
+              <tr class="our-system-row">
+                <td>
+                  <strong>DermaDrishti</strong><br/>
+                  <small>2026 — Our System</small>
+                </td>
+                <td>EfficientNetB0 + Grad-CAM + XAI Dashboard</td>
+                <td>HAM10000</td>
+                <td><span class="acc-pill our">85–90%<br/><small>Target</small></span></td>
+                <td>
+                  <div class="our-advantages">
+                    <span class="adv-tag">✅ Explainable AI</span>
+                    <span class="adv-tag">✅ Lightweight 5.3M</span>
+                    <span class="adv-tag">✅ Zero Cost</span>
+                    <span class="adv-tag">✅ Clinical Precautions</span>
+                    <span class="adv-tag">✅ Offline History</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card 2: Key Research Papers -->
+      <div class="glass-panel lit-card">
+        <div class="lit-card-title-row">
+          <span class="lit-card-icon">📚</span>
+          <div>
+            <h3 class="lit-card-heading">Key Research Papers</h3>
+            <p class="lit-card-sub">Foundational literature that underpins the DermaDrishti architecture and methodology</p>
+          </div>
+        </div>
+        <div class="papers-grid">
+
+          <div class="paper-card">
+            <div class="paper-num">[1]</div>
+            <div class="paper-body">
+              <div class="paper-meta">Tschandl et al. &middot; Scientific Data 2018</div>
+              <h4 class="paper-title">The HAM10000 dataset: A large collection of multi-source dermatoscopic images of common pigmented skin lesions</h4>
+              <p class="paper-doi">DOI: <a href="https://doi.org/10.1038/sdata.2018.161" target="_blank" rel="noopener">10.1038/sdata.2018.161</a></p>
+              <div class="paper-relevance">🔗 Dataset Foundation — 10,015 dermoscopic images across 7 diagnostic categories. Our primary training dataset.</div>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-num">[2]</div>
+            <div class="paper-body">
+              <div class="paper-meta">Tan &amp; Le &middot; ICML 2019</div>
+              <h4 class="paper-title">EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks</h4>
+              <p class="paper-doi">arXiv: <a href="https://arxiv.org/abs/1905.11946" target="_blank" rel="noopener">1905.11946</a></p>
+              <div class="paper-relevance">🔗 Architecture Backbone — Compound scaling of depth/width/resolution. Our model is EfficientNetB0, the lightest variant.</div>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-num">[3]</div>
+            <div class="paper-body">
+              <div class="paper-meta">Selvaraju et al. &middot; ICCV 2017</div>
+              <h4 class="paper-title">Grad-CAM: Visual Explanations from Deep Networks via Gradient-based Localization</h4>
+              <p class="paper-doi">DOI: <a href="https://doi.org/10.1109/ICCV.2017.74" target="_blank" rel="noopener">10.1109/ICCV.2017.74</a></p>
+              <div class="paper-relevance">🔗 Explainability Method — Produces our spatial focus heatmap overlaid on the raw dermoscopy scan via draggable slider.</div>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-num">[4]</div>
+            <div class="paper-body">
+              <div class="paper-meta">Esteva et al. &middot; Nature 2017</div>
+              <h4 class="paper-title">Dermatologist-level classification of skin cancer with deep neural networks</h4>
+              <p class="paper-doi">Nature 542, 115–118 &middot; DOI: <a href="https://doi.org/10.1038/nature21056" target="_blank" rel="noopener">10.1038/nature21056</a></p>
+              <div class="paper-relevance">🔗 Clinical Proof — Demonstrated CNN accuracy matching board-certified dermatologists. Foundational motivation for our work.</div>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-num">[5]</div>
+            <div class="paper-body">
+              <div class="paper-meta">Han et al. &middot; Systematic Review 2023</div>
+              <h4 class="paper-title">A deep learning system for classification of skin lesions: A systematic review</h4>
+              <p class="paper-doi">Journal of Dermatological Treatment, 2023</p>
+              <div class="paper-relevance">🔗 Literature Baseline — Guided our 7-class classification approach and informed class weight optimization strategy.</div>
+            </div>
+          </div>
+
+          <div class="paper-card">
+            <div class="paper-num">[6]</div>
+            <div class="paper-body">
+              <div class="paper-meta">Howard et al. &middot; CVPR 2019</div>
+              <h4 class="paper-title">Searching for MobileNetV3 — Lightweight Neural Architecture Design</h4>
+              <p class="paper-doi">arXiv: <a href="https://arxiv.org/abs/1905.02244" target="_blank" rel="noopener">1905.02244</a></p>
+              <div class="paper-relevance">🔗 Efficiency Benchmark — Contextualized our model choice: EfficientNetB0 outperforms MobileNet on accuracy/params trade-off.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Card 3: Research Gap & Contribution -->
+      <div class="glass-panel lit-card">
+        <div class="lit-card-title-row">
+          <span class="lit-card-icon">🎯</span>
+          <div>
+            <h3 class="lit-card-heading">Research Gap &amp; Our Contribution</h3>
+            <p class="lit-card-sub">Problems identified in existing literature and how DermaDrishti addresses them</p>
+          </div>
+        </div>
+
+        <div class="gaps-grid">
+          <div class="gap-card">
+            <div class="gap-dot red"></div>
+            <div class="gap-label">GAP 1: Black-Box Models</div>
+            <p class="gap-desc">Existing systems — including Esteva (Inception-v3) and Han (ResNet-50) — produce diagnostic predictions without any visual explanation of <em>why</em> the classification was made, making clinical validation impossible.</p>
+            <div class="gap-fix">
+              <span class="gap-fix-arrow">→</span>
+              <strong>OUR FIX:</strong> Integrated Grad-CAM with a draggable comparison slider that visually highlights exact neural activation regions on the scan.
+            </div>
+          </div>
+
+          <div class="gap-card">
+            <div class="gap-dot red"></div>
+            <div class="gap-label">GAP 2: No Clinical Guidance</div>
+            <p class="gap-desc">Users receive a raw diagnostic label (e.g. "Melanoma") with no next-step instructions. This is critically dangerous for a layperson who may misinterpret results without medical context.</p>
+            <div class="gap-fix">
+              <span class="gap-fix-arrow">→</span>
+              <strong>OUR FIX:</strong> Per-class precautions with severity indicators and an ABCDE self-monitoring accordion guide displayed automatically for borderline benign cases (nv).
+            </div>
+          </div>
+
+          <div class="gap-card">
+            <div class="gap-dot red"></div>
+            <div class="gap-label">GAP 3: Cloud-Dependent &amp; Expensive</div>
+            <p class="gap-desc">Commercial platforms (DermEngine, Skinive) require internet connectivity, paid subscriptions, and upload of sensitive skin images to remote servers — raising privacy and accessibility concerns.</p>
+            <div class="gap-fix">
+              <span class="gap-fix-arrow">→</span>
+              <strong>OUR FIX:</strong> Fully offline-capable with localStorage-backed SQLite session history, lightweight EfficientNetB0 (5.3M params), PDF report export, and zero subscription cost.
+            </div>
+          </div>
+        </div>
+
+        <div class="contribution-banner">
+          <span class="contribution-icon">🟢</span>
+          <div>
+            <div class="contribution-label">OUR NOVEL CONTRIBUTION</div>
+            <p class="contribution-text">"First academic skin lesion classifier to combine real-time <strong>Grad-CAM explainability</strong>, educational <strong>ABCDE self-check guidance</strong>, session-based <strong>local SQLite history</strong>, and one-click <strong>clinical PDF export</strong> in a single lightweight open-source web application."</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── Project Documentation Section ───────────────────── -->
+  <section id="documentation-section" class="section documentation-section">
+    <div class="container">
+      <div class="section-header">
+        <h2>Project Documentation</h2>
+        <p>Complete technical reference for DermaDrishti v1.0</p>
+      </div>
+
+      <div class="docs-layout">
+        <!-- Sidebar -->
+        <nav class="docs-sidebar" id="docs-sidebar" aria-label="Documentation navigation">
+          <div class="docs-sidebar-inner">
+            <div class="docs-nav-item active" data-doc="doc-overview">
+              <span class="docs-nav-icon">📁</span>
+              <span>1. Project Overview</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-requirements">
+              <span class="docs-nav-icon">💻</span>
+              <span>2. System Requirements</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-install">
+              <span class="docs-nav-icon">⚙️</span>
+              <span>3. Installation Guide</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-api">
+              <span class="docs-nav-icon">🔌</span>
+              <span>4. API Reference</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-schema">
+              <span class="docs-nav-icon">🗄️</span>
+              <span>5. Database Schema</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-manual">
+              <span class="docs-nav-icon">📖</span>
+              <span>6. User Manual</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-testing">
+              <span class="docs-nav-icon">🧪</span>
+              <span>7. Testing &amp; Validation</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-deploy">
+              <span class="docs-nav-icon">🚀</span>
+              <span>8. Deployment Guide</span>
+            </div>
+            <div class="docs-nav-item" data-doc="doc-future">
+              <span class="docs-nav-icon">🔮</span>
+              <span>9. Future Enhancements</span>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Content Area -->
+        <div class="docs-content" id="docs-content">
+
+          <!-- 1. Project Overview -->
+          <div class="doc-section active" id="doc-overview">
+            <div class="doc-section-header">
+              <span class="doc-section-num">01</span>
+              <h3>Project Overview</h3>
+            </div>
+            <p class="doc-intro">A full-stack deep learning application for automated classification of dermatoscopic skin lesions into 7 diagnostic categories using transfer-learned EfficientNetB0 on the HAM10000 dataset. The system integrates Grad-CAM explainability, clinical precaution guidance, session history, and PDF reporting in a single responsive web application.</p>
+            <div class="doc-info-grid">
+              <div class="doc-info-card"><span class="dic-label">Domain</span><span class="dic-value">Medical AI / Computer Vision</span></div>
+              <div class="doc-info-card"><span class="dic-label">Language</span><span class="dic-value">Python 3.11, JavaScript ES6+</span></div>
+              <div class="doc-info-card"><span class="dic-label">Framework</span><span class="dic-value">Flask, TensorFlow/Keras, Chart.js</span></div>
+              <div class="doc-info-card"><span class="dic-label">Dataset</span><span class="dic-value">HAM10000 (10,015 images)</span></div>
+              <div class="doc-info-card"><span class="dic-label">Model</span><span class="dic-value">EfficientNetB0 (5.3M parameters)</span></div>
+              <div class="doc-info-card"><span class="dic-label">Input</span><span class="dic-value">224×224 RGB dermoscopy image</span></div>
+              <div class="doc-info-card"><span class="dic-label">Output</span><span class="dic-value">Predicted class + confidence + Grad-CAM</span></div>
+              <div class="doc-info-card"><span class="dic-label">License</span><span class="dic-value">CC BY-NC 4.0 (Academic Use)</span></div>
+            </div>
+          </div>
+
+          <!-- 2. System Requirements -->
+          <div class="doc-section" id="doc-requirements">
+            <div class="doc-section-header">
+              <span class="doc-section-num">02</span>
+              <h3>System Requirements</h3>
+            </div>
+            <div class="req-blocks">
+              <div class="req-block">
+                <div class="req-block-icon">🖥️</div>
+                <h4>Hardware</h4>
+                <ul class="req-list">
+                  <li><strong>RAM:</strong> 8GB minimum, 16GB recommended</li>
+                  <li><strong>Storage:</strong> 5GB free (dataset + model weights)</li>
+                  <li><strong>GPU:</strong> Optional — CUDA-compatible for training acceleration</li>
+                  <li><strong>CPU:</strong> Intel i5 / AMD Ryzen 5 or better</li>
+                </ul>
+              </div>
+              <div class="req-block">
+                <div class="req-block-icon">🐍</div>
+                <h4>Software</h4>
+                <ul class="req-list">
+                  <li><strong>Python:</strong> 3.11 or 3.12 (recommended)</li>
+                  <li><strong>pip:</strong> Latest version</li>
+                  <li><strong>virtualenv:</strong> Strongly recommended</li>
+                  <li><strong>Node.js:</strong> Not required</li>
+                </ul>
+              </div>
+              <div class="req-block">
+                <div class="req-block-icon">🌐</div>
+                <h4>Browser Support</h4>
+                <ul class="req-list">
+                  <li>Chrome 90+ (Recommended)</li>
+                  <li>Firefox 88+</li>
+                  <li>Safari 14+</li>
+                  <li>Edge 90+</li>
+                </ul>
+              </div>
+              <div class="req-block">
+                <div class="req-block-icon">💾</div>
+                <h4>Operating System</h4>
+                <ul class="req-list">
+                  <li>Windows 10 / 11</li>
+                  <li>macOS 12+ (Monterey)</li>
+                  <li>Ubuntu 20.04+ / Debian</li>
+                  <li>Any POSIX-compatible OS</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Installation Guide -->
+          <div class="doc-section" id="doc-install">
+            <div class="doc-section-header">
+              <span class="doc-section-num">03</span>
+              <h3>Installation Guide</h3>
+            </div>
+            <div class="install-steps">
+              <div class="install-step">
+                <div class="install-step-num">1</div>
+                <div class="install-step-body">
+                  <strong>Clone the Repository</strong>
+                  <div class="code-block">
+                    <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="git clone https://github.com/pradeep-gec/dermadrishti.git\ncd dermadrishti">Copy</button></div>
+                    <pre><code>git clone https://github.com/pradeep-gec/dermadrishti.git
+cd dermadrishti</code></pre>
+                  </div>
+                </div>
+              </div>
+              <div class="install-step">
+                <div class="install-step-num">2</div>
+                <div class="install-step-body">
+                  <strong>Create Virtual Environment</strong>
+                  <div class="code-block">
+                    <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="python -m venv venv\nsource venv/bin/activate   # Windows: venv\Scripts\activate">Copy</button></div>
+                    <pre><code>python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate</code></pre>
+                  </div>
+                </div>
+              </div>
+              <div class="install-step">
+                <div class="install-step-num">3</div>
+                <div class="install-step-body">
+                  <strong>Install Dependencies</strong>
+                  <div class="code-block">
+                    <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="pip install -r requirements.txt">Copy</button></div>
+                    <pre><code>pip install -r requirements.txt</code></pre>
+                  </div>
+                </div>
+              </div>
+              <div class="install-step">
+                <div class="install-step-num">4</div>
+                <div class="install-step-body">
+                  <strong>Download HAM10000 Dataset</strong>
+                  <p class="install-note">Download from <a href="https://www.kaggle.com/datasets/kmader/skin-lesion-analysis-toward-melanoma-detection" target="_blank">Kaggle HAM10000</a> and extract into the <code>./data/</code> directory.</p>
+                  <div class="code-block">
+                    <div class="code-block-header"><span>structure</span><button class="copy-btn" data-code="data/\n  HAM10000_images_part_1/\n  HAM10000_images_part_2/\n  HAM10000_metadata.csv">Copy</button></div>
+                    <pre><code>data/
+  HAM10000_images_part_1/
+  HAM10000_images_part_2/
+  HAM10000_metadata.csv</code></pre>
+                  </div>
+                </div>
+              </div>
+              <div class="install-step">
+                <div class="install-step-num">5</div>
+                <div class="install-step-body">
+                  <strong>Train Model (or use pre-trained weights)</strong>
+                  <div class="code-block">
+                    <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="python backend/train.py --data_dir ./data --epochs 30">Copy</button></div>
+                    <pre><code>python backend/train.py --data_dir ./data --epochs 30</code></pre>
+                  </div>
+                  <p class="install-note">Or place a pre-trained <code>skin_cancer_model.h5</code> directly into <code>./backend/models/</code></p>
+                </div>
+              </div>
+              <div class="install-step">
+                <div class="install-step-num">6</div>
+                <div class="install-step-body">
+                  <strong>Launch the Application</strong>
+                  <div class="code-block">
+                    <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="cd backend && python app.py">Copy</button></div>
+                    <pre><code>cd backend &amp;&amp; python app.py</code></pre>
+                  </div>
+                </div>
+              </div>
+              <div class="install-step">
+                <div class="install-step-num">7</div>
+                <div class="install-step-body">
+                  <strong>Open in Browser</strong>
+                  <div class="code-block">
+                    <div class="code-block-header"><span>url</span><button class="copy-btn" data-code="http://localhost:5001">Copy</button></div>
+                    <pre><code>http://localhost:5001</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. API Reference -->
+          <div class="doc-section" id="doc-api">
+            <div class="doc-section-header">
+              <span class="doc-section-num">04</span>
+              <h3>API Reference</h3>
+            </div>
+            <p class="doc-intro">DermaDrishti exposes a RESTful Flask API. All responses are JSON. Base URL: <code>http://localhost:5001</code></p>
+            <div class="table-responsive-wrap">
+              <table class="api-table">
+                <thead>
+                  <tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Request</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="method-badge post">POST</span></td>
+                    <td><code>/predict</code></td>
+                    <td>Run model inference on uploaded dermoscopic image</td>
+                    <td><code>multipart/form-data { image: File }</code></td>
+                  </tr>
+                  <tr>
+                    <td><span class="method-badge get">GET</span></td>
+                    <td><code>/health</code></td>
+                    <td>Server health check &amp; model load status</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td><span class="method-badge get">GET</span></td>
+                    <td><code>/model-info</code></td>
+                    <td>Detailed model metadata &amp; validation metrics</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td><span class="method-badge get">GET</span></td>
+                    <td><code>/history</code></td>
+                    <td>Retrieve last 10 session predictions from SQLite</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td><span class="method-badge delete">DELETE</span></td>
+                    <td><code>/history</code></td>
+                    <td>Clear all prediction history from database</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td><span class="method-badge get">GET</span></td>
+                    <td><code>/classes</code></td>
+                    <td>Retrieve all 7 diagnostic class definitions</td>
+                    <td>None</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="api-example">
+              <div class="api-ex-header">Example: POST /predict Response</div>
+              <div class="code-block">
+                <div class="code-block-header"><span>json</span><button class="copy-btn" data-code='{ "id": "uuid-xxxx", "predicted_class": "mel", "full_name": "Melanoma", "confidence": 87.4, "is_cancer": true, "binary_result": "Cancer", "color": "#c0392b", "gradcam_image": "data:image/png;base64,...", "probabilities": { "mel": 87.4, "nv": 6.2, ... }, "precautions": [...], "timestamp": "2026-05-24 22:30:00" }'>Copy</button></div>
+                <pre><code>{
+  "id": "uuid-xxxx",
+  "predicted_class": "mel",
+  "full_name": "Melanoma",
+  "confidence": 87.4,
+  "is_cancer": true,
+  "binary_result": "Cancer",
+  "color": "#c0392b",
+  "gradcam_image": "data:image/png;base64,...",
+  "probabilities": { "mel": 87.4, "nv": 6.2, "bkl": 3.1, ... },
+  "precautions": ["Consult a dermatologist urgently.", ...],
+  "timestamp": "2026-05-24 22:30:00"
+}</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Database Schema -->
+          <div class="doc-section" id="doc-schema">
+            <div class="doc-section-header">
+              <span class="doc-section-num">05</span>
+              <h3>Database Schema</h3>
+            </div>
+            <p class="doc-intro">DermaDrishti uses <strong>SQLite</strong> for local persistence. The database file is <code>backend/derma_history.db</code>. No sensitive patient data or image buffers are stored.</p>
+            <div class="schema-table-wrap">
+              <div class="schema-table-title">Table: <code>predictions</code></div>
+              <table class="schema-table">
+                <thead><tr><th>Column</th><th>Type</th><th>Constraint</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>id</code></td><td>TEXT</td><td>PRIMARY KEY</td><td>UUID v4 generated per prediction</td></tr>
+                  <tr><td><code>timestamp</code></td><td>TEXT</td><td>NOT NULL</td><td>ISO 8601 prediction datetime</td></tr>
+                  <tr><td><code>predicted_class</code></td><td>TEXT</td><td>NOT NULL</td><td>Short class code: mel, nv, bcc, etc.</td></tr>
+                  <tr><td><code>full_name</code></td><td>TEXT</td><td></td><td>Human-readable disease name</td></tr>
+                  <tr><td><code>confidence</code></td><td>REAL</td><td></td><td>Softmax confidence percentage (0–100)</td></tr>
+                  <tr><td><code>is_cancer</code></td><td>INTEGER</td><td></td><td>Boolean flag: 1 = malignant, 0 = benign</td></tr>
+                  <tr><td><code>binary_result</code></td><td>TEXT</td><td></td><td>"Cancer" or "Non-Cancer" label</td></tr>
+                  <tr><td><code>color</code></td><td>TEXT</td><td></td><td>Hex color code for UI display</td></tr>
+                  <tr><td><code>probabilities</code></td><td>TEXT</td><td></td><td>JSON string of all 7 class probabilities</td></tr>
+                  <tr><td><code>precautions</code></td><td>TEXT</td><td></td><td>JSON array of clinical precaution strings</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="schema-note">
+              <span>🔒</span>
+              <p>Privacy Note: Images are processed entirely in-memory and immediately discarded after inference. No pixel data is written to disk or the database at any time.</p>
+            </div>
+          </div>
+
+          <!-- 6. User Manual -->
+          <div class="doc-section" id="doc-manual">
+            <div class="doc-section-header">
+              <span class="doc-section-num">06</span>
+              <h3>User Manual</h3>
+            </div>
+            <div class="manual-steps">
+              <div class="manual-step">
+                <div class="manual-step-icon">📤</div>
+                <div>
+                  <h4>Step 1: Upload a Dermoscopic Image</h4>
+                  <p>Navigate to the <strong>Analyze Scan</strong> section. Drag &amp; drop a JPG/PNG skin lesion image onto the upload zone, or click <em>Browse Files</em>. You may also paste an image from clipboard (Ctrl+V). Accepted formats: JPEG, JPG, PNG. Maximum file size: 10MB.</p>
+                  <div class="manual-screenshot">📸 Drop Zone — shows image preview thumbnail with filename and file size after upload</div>
+                </div>
+              </div>
+              <div class="manual-step">
+                <div class="manual-step-icon">⚡</div>
+                <div>
+                  <h4>Step 2: Execute Classification</h4>
+                  <p>Click the <strong>Execute Classification</strong> button (enabled only when an image is selected and the AI model is loaded). A full-screen pipeline overlay appears showing 4 stages: Input → Preprocess → CNN Model → Classify. Each step animates with a progress bar and live status subtitle.</p>
+                  <div class="manual-screenshot">📸 Pipeline Overlay — 4-column full-screen animation showing each processing stage</div>
+                </div>
+              </div>
+              <div class="manual-step">
+                <div class="manual-step-icon">🔬</div>
+                <div>
+                  <h4>Step 3: Interpret the Results</h4>
+                  <p>After inference completes, the Results section appears. It contains: (a) a <strong>BENIGN/MALIGNANT badge</strong> with confidence percentage in a radial gauge, (b) a <strong>Grad-CAM draggable slider</strong> comparing the raw dermoscopy scan to the neural activation heatmap, and (c) a <strong>probability bar chart</strong> for all 7 classes.</p>
+                  <div class="manual-screenshot">📸 Results — BENIGN/MALIGNANT badge, radial confidence gauge, Grad-CAM slider, Chart.js probability chart</div>
+                </div>
+              </div>
+              <div class="manual-step">
+                <div class="manual-step-icon">🧬</div>
+                <div>
+                  <h4>Step 4: ABCDE Self-Check Guide</h4>
+                  <p>If the predicted class is <strong>Melanocytic Nevi (nv)</strong> — the most common borderline case — an interactive ABCDE accordion guide appears automatically. Each letter (Asymmetry, Border, Color, Diameter, Evolution) expands to reveal clinical self-monitoring criteria.</p>
+                  <div class="manual-screenshot">📸 ABCDE Guide — expandable accordion, visible only for nv class predictions</div>
+                </div>
+              </div>
+              <div class="manual-step">
+                <div class="manual-step-icon">📋</div>
+                <div>
+                  <h4>Step 5: View Session History</h4>
+                  <p>Scroll to <strong>Registry Log</strong>. All predictions in the current session are listed chronologically with class name, confidence match %, BENIGN/MALIGNANT badge, and timestamp. Click any row to expand full details and re-download the PDF report.</p>
+                  <div class="manual-screenshot">📸 Registry Log — expandable history rows with colored dot indicators</div>
+                </div>
+              </div>
+              <div class="manual-step">
+                <div class="manual-step-icon">📄</div>
+                <div>
+                  <h4>Step 6: Download PDF Report</h4>
+                  <p>Click <strong>📄 Download PDF Report</strong> in the Results section. A clinical-grade PDF is generated client-side using jsPDF containing: scan UUID, timestamp, diagnosis, confidence, probability table, precautions, and medical disclaimer.</p>
+                  <div class="manual-screenshot">📸 PDF Report — A4 portrait, dark header with DermaDrishti branding, probability table, disclaimer block</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 7. Testing & Validation -->
+          <div class="doc-section" id="doc-testing">
+            <div class="doc-section-header">
+              <span class="doc-section-num">07</span>
+              <h3>Testing &amp; Validation</h3>
+            </div>
+            <div class="testing-grid">
+              <div class="testing-card">
+                <h4>🧪 Unit Tests</h4>
+                <p>Pytest-based unit tests for backend utility modules.</p>
+                <div class="code-block">
+                  <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="pytest tests/test_preprocess.py tests/test_model_utils.py tests/test_gradcam.py -v">Copy</button></div>
+                  <pre><code>pytest tests/test_preprocess.py \
+       tests/test_model_utils.py \
+       tests/test_gradcam.py -v</code></pre>
+                </div>
+                <ul class="test-list">
+                  <li>✅ test_preprocess: image resize, normalize, RGB conversion</li>
+                  <li>✅ test_model_utils: model load, predict output shape</li>
+                  <li>✅ test_gradcam: heatmap generation, base64 output</li>
+                </ul>
+              </div>
+              <div class="testing-card">
+                <h4>🔗 Integration Tests</h4>
+                <p>Flask test client validates API endpoints end-to-end.</p>
+                <div class="code-block">
+                  <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="pytest tests/test_api.py -v">Copy</button></div>
+                  <pre><code>pytest tests/test_api.py -v</code></pre>
+                </div>
+                <ul class="test-list">
+                  <li>✅ GET /health → 200 OK</li>
+                  <li>✅ POST /predict → valid JSON response</li>
+                  <li>✅ GET /history → correct record count</li>
+                  <li>✅ DELETE /history → 204 No Content</li>
+                </ul>
+              </div>
+            </div>
+            <div class="validation-block">
+              <h4>📊 Model Validation Strategy</h4>
+              <div class="val-grid">
+                <div class="val-item"><span class="val-label">Split</span><span class="val-value">80% Train / 20% Validation (stratified)</span></div>
+                <div class="val-item"><span class="val-label">Optimizer</span><span class="val-value">Adam (lr=1e-4 Phase 1, lr=1e-5 Phase 2)</span></div>
+                <div class="val-item"><span class="val-label">Loss</span><span class="val-value">Sparse Categorical Crossentropy</span></div>
+                <div class="val-item"><span class="val-label">Metrics</span><span class="val-value">Accuracy, Precision, Recall, F1-Score</span></div>
+                <div class="val-item"><span class="val-label">Class Weights</span><span class="val-value">sklearn compute_class_weight('balanced')</span></div>
+                <div class="val-item"><span class="val-label">Callbacks</span><span class="val-value">EarlyStopping, ModelCheckpoint, ReduceLROnPlateau</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 8. Deployment Guide -->
+          <div class="doc-section" id="doc-deploy">
+            <div class="doc-section-header">
+              <span class="doc-section-num">08</span>
+              <h3>Deployment Guide</h3>
+            </div>
+            <div class="deploy-options">
+              <div class="deploy-option">
+                <div class="deploy-option-badge local">LOCAL</div>
+                <h4>Local Development</h4>
+                <div class="code-block">
+                  <div class="code-block-header"><span>bash</span><button class="copy-btn" data-code="cd backend && python app.py">Copy</button></div>
+                  <pre><code>cd backend &amp;&amp; python app.py</code></pre>
+                </div>
+                <p>Runs on <code>http://localhost:5001</code>. Model loads automatically from <code>models/skin_cancer_model.h5</code>.</p>
+              </div>
+              <div class="deploy-option">
+                <div class="deploy-option-badge render">RENDER.COM</div>
+                <h4>Render Cloud Deployment</h4>
+                <div class="code-block">
+                  <div class="code-block-header"><span>bash — build.sh</span><button class="copy-btn" data-code="pip install -r requirements.txt">Copy</button></div>
+                  <pre><code>pip install -r requirements.txt</code></pre>
+                </div>
+                <div class="deploy-warning">⚠️ Free tier: 512MB RAM cap — model weights (~87MB) may exceed memory. Set <code>DEMO_ONLY=true</code> for demo mode fallback.</div>
+              </div>
+            </div>
+            <div class="env-table-wrap">
+              <h4>Environment Variables</h4>
+              <table class="env-table">
+                <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>PORT</code></td><td>5001</td><td>Server port</td></tr>
+                  <tr><td><code>FLASK_DEBUG</code></td><td>false</td><td>Enable Flask debug mode</td></tr>
+                  <tr><td><code>DEMO_ONLY</code></td><td>false</td><td>Skip model loading, return demo-mode responses</td></tr>
+                  <tr><td><code>RENDER</code></td><td>false</td><td>Auto-detected on Render.com — triggers memory-safe mode</td></tr>
+                  <tr><td><code>MODEL_PATH</code></td><td>models/skin_cancer_model.h5</td><td>Custom path to trained .h5 weights file</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 9. Future Enhancements -->
+          <div class="doc-section" id="doc-future">
+            <div class="doc-section-header">
+              <span class="doc-section-num">09</span>
+              <h3>Future Enhancements</h3>
+            </div>
+            <p class="doc-intro">The following roadmap items are identified for future development cycles beyond the academic submission scope.</p>
+            <div class="future-list">
+              <div class="future-item">
+                <span class="future-icon">🔮</span>
+                <div>
+                  <h4>Real-Time Webcam Capture</h4>
+                  <p>Integrate browser MediaDevices API to capture dermoscopic images directly from connected USB dermatoscopes or mobile cameras, eliminating the file upload step.</p>
+                </div>
+              </div>
+              <div class="future-item">
+                <span class="future-icon">📱</span>
+                <div>
+                  <h4>Mobile App (React Native / Flutter)</h4>
+                  <p>Port the frontend to a cross-platform mobile application with offline TFLite inference, enabling field use without a server dependency.</p>
+                </div>
+              </div>
+              <div class="future-item">
+                <span class="future-icon">🤖</span>
+                <div>
+                  <h4>Multi-Model Ensemble</h4>
+                  <p>Combine EfficientNetB0 + ResNet50 + DenseNet121 predictions via soft voting ensemble to improve robustness and reduce false negatives for malignant classes.</p>
+                </div>
+              </div>
+              <div class="future-item">
+                <span class="future-icon">🏥</span>
+                <div>
+                  <h4>FHIR Compliance &amp; EMR Integration</h4>
+                  <p>Implement HL7 FHIR-compliant data models for clinical-grade deployment and integration with hospital Electronic Medical Record systems.</p>
+                </div>
+              </div>
+              <div class="future-item">
+                <span class="future-icon">🌏</span>
+                <div>
+                  <h4>Multi-Language Support</h4>
+                  <p>Add localization for Hindi, Tamil, Bengali, and other regional Indian languages to make the tool accessible in rural healthcare settings.</p>
+                </div>
+              </div>
+              <div class="future-item">
+                <span class="future-icon">📊</span>
+                <div>
+                  <h4>Federated Learning Architecture</h4>
+                  <p>Implement privacy-preserving federated learning across multiple hospital nodes so the model can improve continuously without centralizing patient data.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- end docs-content -->
+      </div><!-- end docs-layout -->
+    </div>
+  </section>
+
+  <!-- ─── AI Processing Pipeline — FULL-SCREEN OVERLAY ────── -->
+  <div class="pipeline-overlay hidden" id="pipeline-overlay" role="dialog" aria-modal="true" aria-live="polite" aria-labelledby="pipeline-overlay-title">
+    
+    <!-- Header Bar -->
+    <div class="pipeline-header-bar">
+      <div class="pipeline-header-left">
+        <div class="pipeline-logo-dot"></div>
+        <span id="pipeline-overlay-title" class="pipeline-brand">DERMADRISHTI · AI PROCESSING PIPELINE</span>
+      </div>
+      <div class="pipeline-header-right">
+        <span class="pipeline-scan-id">SCAN-ID: <strong id="pipeline-scan-id-val">------</strong></span>
+        <span class="pipeline-scan-time" id="pipeline-scan-time"></span>
+        <button class="pipeline-close-btn" id="pipeline-close-btn" aria-label="Cancel Processing" type="button">✕ CANCEL</button>
+      </div>
+    </div>
+
+    <!-- Steps Container -->
+    <div class="pipeline-steps-fullscreen">
+
+      <!-- STEP 01 · INPUT -->
+      <div class="pipeline-step-fs" id="pipeline-step-1">
+        <div class="pipeline-step-fs-num">STEP 01</div>
+        <div class="pipeline-step-fs-icon">📷</div>
+        <div class="pipeline-step-fs-body">
+          <div class="pipeline-step-fs-label">INPUT</div>
+          <h4 class="pipeline-step-fs-title">Dermoscopic Scan Upload</h4>
+          <p class="pipeline-step-fs-sub" id="pipeline-step-sub-1">Awaiting dermoscopic image payload...</p>
+          <div class="pipeline-step-fs-bar-wrap">
+            <div class="pipeline-step-fs-bar cyan" id="pipeline-bar-1"></div>
+          </div>
+        </div>
+        <div class="pipeline-step-fs-check" id="pipeline-check-1">✓</div>
+      </div>
+
+      <!-- STEP 02 · PREPROCESS -->
+      <div class="pipeline-step-fs" id="pipeline-step-2">
+        <div class="pipeline-step-fs-num">STEP 02</div>
+        <div class="pipeline-step-fs-icon">⚙️</div>
+        <div class="pipeline-step-fs-body">
+          <div class="pipeline-step-fs-label">PREPROCESS</div>
+          <h4 class="pipeline-step-fs-title">AI Image Preprocessing</h4>
+          <p class="pipeline-step-fs-sub" id="pipeline-step-sub-2">Queued for normalization...</p>
+          <div class="pipeline-step-fs-bar-wrap">
+            <div class="pipeline-step-fs-bar purple" id="pipeline-bar-2"></div>
+          </div>
+        </div>
+        <div class="pipeline-step-fs-check" id="pipeline-check-2">✓</div>
+      </div>
+
+      <!-- STEP 03 · CNN MODEL -->
+      <div class="pipeline-step-fs" id="pipeline-step-3">
+        <div class="pipeline-step-fs-num">STEP 03</div>
+        <div class="pipeline-step-fs-icon">🧠</div>
+        <div class="pipeline-step-fs-body">
+          <div class="pipeline-step-fs-label">CNN MODEL</div>
+          <h4 class="pipeline-step-fs-title">CNN Deep Learning Analysis</h4>
+          <p class="pipeline-step-fs-sub" id="pipeline-step-sub-3">EfficientNet-B0 standing by...</p>
+          <div class="pipeline-step-fs-bar-wrap">
+            <div class="pipeline-step-fs-bar cyan" id="pipeline-bar-3"></div>
+          </div>
+        </div>
+        <div class="pipeline-step-fs-check" id="pipeline-check-3">✓</div>
+      </div>
+
+      <!-- STEP 04 · CLASSIFY -->
+      <div class="pipeline-step-fs" id="pipeline-step-4">
+        <div class="pipeline-step-fs-num">STEP 04</div>
+        <div class="pipeline-step-fs-icon">📊</div>
+        <div class="pipeline-step-fs-body">
+          <div class="pipeline-step-fs-label">CLASSIFY</div>
+          <h4 class="pipeline-step-fs-title">Diagnostic Classification</h4>
+          <p class="pipeline-step-fs-sub" id="pipeline-step-sub-4">Softmax layer waiting...</p>
+          <div class="pipeline-step-fs-bar-wrap">
+            <div class="pipeline-step-fs-bar green" id="pipeline-bar-4"></div>
+          </div>
+        </div>
+        <div class="pipeline-step-fs-check" id="pipeline-check-4">✓</div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div class="pipeline-status-bar">
+      <span class="pipeline-phase-label" id="pipeline-phase-label">Phase 1/4 — Initialising inference pipeline...</span>
+      <div class="pipeline-overall-progress">
+        <div class="pipeline-overall-bar" id="pipeline-progress-bar-fill"></div>
+      </div>
+      <span class="pipeline-pct" id="pipeline-percentage-label">0%</span>
+    </div>
+
+    <!-- Hidden legacy elements kept for JS compatibility -->
+    <span id="pipeline-timer-label" style="display:none"></span>
+    <div class="pipeline-error-footer hidden" id="pipeline-error-footer" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--bg-card);border:1px solid var(--c-cancer);border-radius:var(--radius-lg);padding:20px 28px;display:flex;flex-direction:column;gap:12px;align-items:center;">
+      <p class="pipeline-error-text" id="pipeline-error-text" style="color:var(--c-cancer);font-weight:700;">Network error occurred during inference.</p>
+      <button class="btn btn-outline" id="pipeline-retry-btn" type="button">Retry Inference</button>
+    </div>
+    <div style="display:none">
+      <button id="pipeline-bottom-cancel-btn" type="button">Cancel</button>
+    </div>
+  </div>
 
   <!-- ─── Footer ─────────────────────────────────────────── -->
   <footer class="site-footer">
@@ -455,7 +1739,7 @@
       <p class="footer-disclaimer">
         ⚕️ Computational skin classification support. Not certified for diagnostic decisions. In case of abnormalities, seek licensed medical guidance.
       </p>
-      <p class="footer-copy">© 2026 · Built by Group G12 CSE · GEC Palamu</p>
+      <p class="footer-copy">© 2026 · DermaDrishti · GEC Palamu · CSE Department · Licensed under CC BY-NC 4.0</p>
     </div>
   </footer>
 

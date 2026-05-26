@@ -3,6 +3,7 @@ preprocess.py
 =============
 Image preprocessing pipeline for skin cancer classification.
 Resizes, normalizes, and prepares images for EfficientNetB0 inference.
+Includes image parameter validations (resolution size guards).
 """
 
 import numpy as np
@@ -32,15 +33,19 @@ def preprocess_image(image_bytes: bytes) -> np.ndarray:
     # Open image from bytes buffer
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
+    # Image dimension check
+    width, height = image.size
+    if width < 128 or height < 128:
+        raise ValueError(
+            f"Image resolution too low ({width}x{height}px). "
+            f"Minimum allowed size is 128x128 pixels."
+        )
+
     # Resize to target size using high-quality Lanczos resampling
     image = image.resize(IMG_SIZE, Image.LANCZOS)
 
     # Convert to numpy array and normalize to [0, 1]
     img_array = np.array(image, dtype=np.float32) / 255.0
-
-    # EfficientNetB0 expects pixel values scaled to [0, 1]
-    # (keras.applications.efficientnet.preprocess_input scales to [-1, 1],
-    #  but since we trained with /255 normalization we keep it consistent)
 
     # Add batch dimension: (224, 224, 3) → (1, 224, 224, 3)
     img_array = np.expand_dims(img_array, axis=0)
@@ -56,6 +61,15 @@ def preprocess_image_for_gradcam(image_bytes: bytes) -> tuple:
         (img_array, pil_image) — preprocessed array + original PIL Image resized to 224x224.
     """
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    
+    # Image dimension check
+    width, height = image.size
+    if width < 128 or height < 128:
+        raise ValueError(
+            f"Image resolution too low ({width}x{height}px). "
+            f"Minimum allowed size is 128x128 pixels."
+        )
+
     image_resized = image.resize(IMG_SIZE, Image.LANCZOS)
 
     img_array = np.array(image_resized, dtype=np.float32) / 255.0

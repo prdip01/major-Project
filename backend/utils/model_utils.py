@@ -1,8 +1,8 @@
 """
 model_utils.py
 ==============
-Model loading, inference, and demo/mock mode fallback if model
-file is not yet available (before training on HAM10000).
+Model loading and inference. Enforces strict actual CNN model execution,
+completely terminating simulated mock random predictions (demo mode fallbacks).
 """
 
 import os
@@ -29,20 +29,20 @@ CLASS_LABELS = ["akiec", "bcc", "bkl", "df", "mel", "nv", "vasc"]
 def load_model():
     """
     Load the EfficientNetB0 model from disk if available.
-    Returns the model object or None if not found (demo mode/incompatible env).
+    Returns the model object or None if not found.
     """
     if os.environ.get("DEMO_ONLY") == "true":
+        logger.warning("DEMO_ONLY environment variable set. Enforcing offline status.")
         return None
 
     # --- RENDER CLOUD HOSTING MEMORY LIMIT GUARD ---
     # Render's free tier has a strict 512 MB RAM cap.
-    # Importing TensorFlow and loading the 134 MB CNN model easily consumes 600MB+ RAM.
-    # To prevent Out-Of-Memory (OOM) crashes on Render, we force DEMO_MODE in cloud deploys.
+    # Importing TensorFlow and loading the 134 MB CNN model consumes 600MB+ RAM.
+    # To prevent Out-Of-Memory (OOM) crashes on Render, we keep the guard but don't fake predictions.
     if os.environ.get("RENDER") == "true":
         logger.warning(
             "🌐 ACTIVE CLOUD DEPLOYMENT DETECTED (Render.com)\n"
-            "   Enforcing simulated predictions to comply with 512MB RAM constraints.\n"
-            "   ✨ Local deployment will still run full EfficientNetB0 real predictions!"
+            "   Cloud RAM exceeds 512MB limit. Server runs offline mode."
         )
         return None
 
@@ -51,7 +51,6 @@ def load_model():
         return _model
 
     # --- INCOMPATIBILITY GUARD for macOS ARM + Python 3.13 ---
-    # TensorFlow currently crashes (Abort trap: 6) on this combination.
     import sys
     import platform
     is_macos_arm = sys.platform == "darwin" and platform.machine() == "arm64"
@@ -60,18 +59,14 @@ def load_model():
     if is_macos_arm and is_py313:
         logger.error(
             "⚠️  INCOMPATIBLE ENVIRONMENT DETECTED (macOS ARM + Python 3.13)\n"
-            "   TensorFlow crashes on this specific combination. To prevent a backend crash,\n"
-            "   the system will run in DEMO MODE.\n"
+            "   TensorFlow crashes on this specific combination. Model cannot load.\n"
             "   💡 FIX: Please install Python 3.11 or 3.12 for full model support."
         )
         return None
 
     model_path = os.path.abspath(MODEL_PATH)
     if not os.path.exists(model_path):
-        logger.warning(
-            f"❌ Model file not found at {model_path}. "
-            "Running in DEMO MODE with simulated predictions."
-        )
+        logger.warning(f"❌ Model file not found at {model_path}.")
         return None
 
     try:
@@ -91,6 +86,7 @@ def load_model():
 def predict(img_array: np.ndarray) -> dict:
     """
     Run inference on a preprocessed image array.
+    Strictly performs actual neural predictions. Raises exception if model not active.
 
     Args:
         img_array: Numpy array of shape (1, 224, 224, 3), normalized to [0, 1].
@@ -105,18 +101,15 @@ def predict(img_array: np.ndarray) -> dict:
     model = load_model()
 
     if model is None:
-        # --- DEMO MODE ---
-        # Generate realistic-looking random probabilities for demonstration
-        raw = np.random.dirichlet(np.ones(7) * 0.5)
-        probs = dict(zip(CLASS_LABELS, raw.tolist()))
-        # Make the demo a bit more interesting — boost one class slightly
-        demo_class = CLASS_LABELS[np.argmax(raw)]
-        logger.info(f"[DEMO MODE] Predicted: {demo_class}")
-    else:
-        # --- REAL INFERENCE ---
-        raw = model.predict(img_array, verbose=0)[0]  # shape: (7,)
-        probs = dict(zip(CLASS_LABELS, raw.tolist()))
-        demo_class = None
+        raise RuntimeError(
+            "EfficientNet-B0 model weights not loaded. "
+            f"Please verify model file exists at: {os.path.abspath(MODEL_PATH)}"
+        )
+
+    # --- REAL CNN INFERENCE ---
+    logger.info("⚡ Executing real CNN inference pass...")
+    raw = model.predict(img_array, verbose=0)[0]  # shape: (7,)
+    probs = dict(zip(CLASS_LABELS, raw.tolist()))
 
     # Identify top prediction
     predicted_label = max(probs, key=probs.get)
@@ -128,5 +121,5 @@ def predict(img_array: np.ndarray) -> dict:
         "predicted_index": predicted_index,
         "confidence": confidence,
         "probabilities": probs,
-        "demo_mode": model is None,
+        "demo_mode": False,
     }

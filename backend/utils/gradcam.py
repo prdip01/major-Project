@@ -4,6 +4,7 @@ gradcam.py
 Grad-CAM (Gradient-weighted Class Activation Mapping) visualization.
 Generates a heatmap overlay showing which regions of the skin image
 influenced the model's prediction most.
+Strictly relies on real backpropagation gradients. Mock fallbacks removed.
 """
 
 import numpy as np
@@ -27,59 +28,91 @@ def generate_gradcam(model, img_array: np.ndarray, class_idx: int, pil_image: Im
         pil_image: Original PIL Image (224x224) for overlay.
 
     Returns:
-        Base64-encoded PNG string of the Grad-CAM overlay.
+        Base64-encoded PNG string of the Grad-CAM overlay, or None if failed.
     """
-    try:
-        if model is None:
-            # Demo mode: generate a fake heatmap for demonstration
-            return _generate_demo_gradcam(pil_image)
+    if model is None:
+        raise RuntimeError("CNN Model not loaded. Cannot execute Grad-CAM backpropagation.")
 
-        import tensorflow as tf
+    import tensorflow as tf
 
-        # Find the last convolutional layer in EfficientNetB0
-        # For EfficientNetB0, the last conv layer is named 'top_conv'
-        last_conv_layer_name = _find_last_conv_layer(model)
+    # Dynamically find the last convolutional layer (supports custom CNNs and EfficientNet)
+    last_conv_layer_name = _find_last_conv_layer(model)
+    logger.info(f"🧬 Extracting convolutional features from layer: '{last_conv_layer_name}'")
 
-        # Build a model that maps input → (last_conv_output, final_predictions)
+    # Check if the model is a Keras Sequential model (which requires dynamic layer-by-layer forward execution in Keras 3)
+    is_sequential = model.__class__.__name__.lower() == "sequential" or isinstance(model, tf.keras.Sequential)
+
+    if is_sequential:
+        logger.info("🤖 Sequential model detected. Executing robust layer-by-layer forward pass.")
+        conv_layer_idx = None
+        for idx, layer in enumerate(model.layers):
+            if layer.name == last_conv_layer_name:
+                conv_layer_idx = idx
+                break
+                
+        if conv_layer_idx is None:
+            raise RuntimeError(f"Could not find conv layer {last_conv_layer_name} in model.")
+            
+        # Run forward pass up to the conv layer
+        out = tf.cast(img_array, tf.float32)
+        for idx in range(conv_layer_idx + 1):
+            out = model.layers[idx](out)
+        conv_outputs = out
+        
+        # Tape records remaining layers starting from the conv layer output
+        with tf.GradientTape() as tape:
+            tape.watch(conv_outputs)
+            y = conv_outputs
+            for idx in range(conv_layer_idx + 1, len(model.layers)):
+                y = model.layers[idx](y)
+            predictions = y
+            class_score = predictions[:, class_idx]
+            
+        # Gradients of class score w.r.t last conv output
+        grads = tape.gradient(class_score, conv_outputs)
+    else:
+        logger.info("🕸️ Functional/Subclassed model detected. Using standard Keras model grafting.")
+        # Build functional model outputs
         grad_model = tf.keras.models.Model(
             inputs=model.inputs,
             outputs=[model.get_layer(last_conv_layer_name).output, model.output],
         )
-
-        # Compute gradients of the class score w.r.t. the conv layer output
+        
         with tf.GradientTape() as tape:
             conv_outputs, predictions = grad_model(img_array)
-            # Score for the predicted class
             class_score = predictions[:, class_idx]
-
+            
         # Gradients: shape (1, H, W, C)
         grads = tape.gradient(class_score, conv_outputs)
 
-        # Pool gradients over spatial dimensions → shape (C,)
-        pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
+    # Pool gradients over spatial dimensions → shape (C,)
+    pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
 
-        # Weight conv outputs by gradients
-        conv_outputs = conv_outputs[0]  # (H, W, C)
-        heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]  # (H, W, 1)
-        heatmap = tf.squeeze(heatmap)  # (H, W)
+    # Weight conv outputs by gradients
+    conv_outputs = conv_outputs[0]  # (H, W, C)
+    heatmap = conv_outputs @ pooled_grads[..., tf.newaxis]  # (H, W, 1)
+    heatmap = tf.squeeze(heatmap)  # (H, W)
 
-        # ReLU and normalize to [0, 1]
-        heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-8)
-        heatmap = heatmap.numpy()
+    # ReLU and normalize to [0, 1]
+    heatmap = tf.maximum(heatmap, 0) / (tf.math.reduce_max(heatmap) + 1e-8)
+    heatmap = heatmap.numpy()
 
-        return _overlay_heatmap_on_image(heatmap, pil_image)
-
-    except Exception as e:
-        logger.warning(f"Grad-CAM failed: {e}. Returning demo heatmap.")
-        return _generate_demo_gradcam(pil_image)
+    return _overlay_heatmap_on_image(heatmap, pil_image)
 
 
 def _find_last_conv_layer(model) -> str:
-    """Find the name of the last convolutional layer in the model."""
+    """
+    Dynamically search the Keras model in reverse order to find the last 2D Convolutional layer.
+    """
     for layer in reversed(model.layers):
-        if hasattr(layer, 'filters') or 'conv' in layer.name.lower():
+        class_name = layer.__class__.__name__.lower()
+        layer_name = layer.name.lower()
+        # Look for standard 2D Convolutional layers
+        if "conv2d" in class_name or "conv2d" in layer_name:
             return layer.name
-    # Fallback for EfficientNetB0
+        if "conv" in class_name or "conv" in layer_name:
+            return layer.name
+    # Fallback to original default
     return "top_conv"
 
 
@@ -110,20 +143,3 @@ def _overlay_heatmap_on_image(heatmap: np.ndarray, pil_image: Image.Image) -> st
     result_image.save(buffer, format="PNG")
     base64_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
     return f"data:image/png;base64,{base64_str}"
-
-
-def _generate_demo_gradcam(pil_image: Image.Image) -> str:
-    """
-    Generate a realistic-looking synthetic Grad-CAM heatmap for demo mode.
-    Creates a Gaussian blob centered slightly off-center to simulate a lesion highlight.
-    """
-    h, w = 224, 224
-    # Create a Gaussian heatmap centered around the image center with some offset
-    cx, cy = w // 2 + np.random.randint(-30, 30), h // 2 + np.random.randint(-30, 30)
-    sigma = np.random.randint(40, 70)
-
-    y_coords, x_coords = np.ogrid[:h, :w]
-    heatmap = np.exp(-((x_coords - cx) ** 2 + (y_coords - cy) ** 2) / (2 * sigma ** 2))
-    heatmap = (heatmap / heatmap.max()).astype(np.float32)
-
-    return _overlay_heatmap_on_image(heatmap, pil_image)
